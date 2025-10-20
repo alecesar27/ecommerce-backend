@@ -33,12 +33,13 @@ jobs:
 
     # 4️⃣ Build & Push de todas as imagens de serviços
     - name: Build and Push Docker Images
-      run: |
+      run:  |
         services=(user-service product-service order-service notification-service gateway)
         for service in "${services[@]}"; do
-          echo "Building $service"
-          docker build -t $DOCKER_REGISTRY/$service:$IMAGE_TAG ./$service
-          docker push $DOCKER_REGISTRY/$service:$IMAGE_TAG
+           TAG=${IMAGE_TAG:-latest}
+           echo "Building $service with tag $TAG"
+           docker build -t $DOCKER_REGISTRY/$service:$TAG ./$service
+           docker push $DOCKER_REGISTRY/$service:$TAG
         done
 
     # 5️⃣ Configurar kubectl para EKS

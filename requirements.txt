@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+ariadne
+sqlalchemy
+psycopg2-binary
+pydantic
+python-jose[cryptography]
+passlib[bcrypt]
+aiokafka
+redis
+httpx
+circuitbreaker
+pytest 
+pytest-asyncio

@@ -1,0 +1,64 @@
+name: CI/CD Pipeline - EKS & Docker Compose Services
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    # env:
+    #   DOCKER_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+    #   IMAGE_TAG: ${{ github.sha }}
+
+    steps:
+    # 1️⃣ Checkout do repositório
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    # 2️⃣ Configurar AWS CLI
+    # - name: Configure AWS Credentials
+    #   uses: aws-actions/configure-aws-credentials@v2
+    #   with:
+    #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    #     aws-region: ${{ secrets.AWS_REGION }}
+
+    # # 3️⃣ Login no Amazon ECR
+    # - name: Login to Amazon ECR
+    #   run: |
+    #     aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $DOCKER_REGISTRY
+
+    # 4️⃣ Build & Push de todas as imagens de serviços
+    - name: Build and Push Docker Images
+      run: |
+        services=(user-service product-service order-service notification-service gateway)
+        for service in "${services[@]}"; do
+          echo "Building $service"
+          docker build -t $DOCKER_REGISTRY/$service:$IMAGE_TAG ./$service
+          docker push $DOCKER_REGISTRY/$service:$IMAGE_TAG
+        done
+
+    # 5️⃣ Configurar kubectl para EKS
+    - name: Configure kubectl for EKS
+      run: |
+        aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+
+    # 6️⃣ Deploy Kubernetes (EKS)
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f k8s/
+        # Opcional: restart deployments para atualizar as imagens
+        deployments=(user-service product-service order-service notification-service gateway)
+        for deploy in "${deployments[@]}"; do
+          kubectl rollout restart deployment $deploy
+        done
+
+    # 7️⃣ Limpeza das imagens locais
+    - name: Cleanup local Docker images
+      run: |
+        for service in "${services[@]}"; do
+          docker rmi $DOCKER_REGISTRY/$service:$IMAGE_TAG || true
+        done

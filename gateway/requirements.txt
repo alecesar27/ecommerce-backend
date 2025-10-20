@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+circuitbreaker
+httpx
+strawberry-graphql[fastapi]
+
